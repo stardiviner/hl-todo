@@ -106,8 +106,12 @@ This is used by `global-hl-todo-mode'."
   `(((lambda (limit)
        (let (case-fold-search)
          (and (re-search-forward hl-todo-regexp limit t)
-              (nth 8 (syntax-ppss))))) ; inside comment or string
+              (hl-todo-inside-comment-or-docstring-p))))
      (1 (hl-todo-get-face) t t))))
+
+(cl-defun hl-todo-inside-comment-or-docstring-p (&optional (pos (point)))
+  (and (nth 8 (syntax-ppss pos))
+       (not (eq (get-text-property pos 'face) 'font-lock-string-face))))
 
 (defun hl-todo-get-face ()
   (let ((face (cdr (assoc (match-string 1) hl-todo-keyword-faces))))
@@ -161,7 +165,8 @@ A negative argument means move backward that many keywords."
                     (goto-char (match-end 0)))
                   (or (re-search-forward hl-todo-regexp nil t)
                       (user-error "No more matches"))))
-      (cl-decf arg))))
+      (when (hl-todo-inside-comment-or-docstring-p)
+        (cl-decf arg)))))
 
 ;;;###autoload
 (defun hl-todo-previous (arg)
@@ -180,7 +185,8 @@ A negative argument means move forward that many keywords."
                       (progn (goto-char start)
                              (user-error "No more matches")))))
       (goto-char (match-end 0))
-      (cl-decf arg))))
+      (when (hl-todo-inside-comment-or-docstring-p)
+        (cl-decf arg)))))
 
 ;;;###autoload
 (defun hl-todo-occur ()
